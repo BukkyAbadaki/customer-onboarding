@@ -32,6 +32,16 @@ public class CustomerServiceImpl implements CustomerService {
                     .responseMessage("NIN already exists")
                     .build();
         }
+
+        if (customerRepository.findByEmail(requestDto.getEmail()).isPresent()) {
+            return CustomerResponseDto.builder()
+                    .responseCode("002")
+                    .responseMessage("Email already exists")
+                    .build();
+        }
+
+
+
         // Save new customer
         Customer customer = Customer.builder()
                 .fullName(requestDto.getFullName())
