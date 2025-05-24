@@ -5,6 +5,7 @@ import com.fintech_middleware.customer_onboarding.dto.request.CustomerRequestDto
 import com.fintech_middleware.customer_onboarding.dto.response.CustomerResponseDto;
 import com.fintech_middleware.customer_onboarding.repository.CustomerRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
@@ -18,51 +19,47 @@ public class CustomerServiceImpl implements CustomerService {
 
     @Override
     public CustomerResponseDto onboardCustomer(CustomerRequestDto requestDto) {
-        if (customerRepository.findByBvn(requestDto.getBvn()).isPresent()) {
+
+
+
+        try {
+            // Save new customer
+            Customer customer = Customer.builder()
+                    .fullName(requestDto.getFullName())
+                    .bvn(requestDto.getBvn())
+                    .nin(requestDto.getNin())
+                    .email(requestDto.getEmail())
+                    .isVerified(true)
+                    .build();
+
+            Customer saved = customerRepository.save(customer);
+
+            // Return successful response
+            return CustomerResponseDto.builder()
+                    .id(saved.getId())
+                    .fullName(saved.getFullName())
+                    .bvn(saved.getBvn())
+                    .nin(saved.getNin())
+                    .email(saved.getEmail())
+                    .responseCode("000")
+                    .responseMessage("Success")
+                    .build();
+
+        } catch (DataIntegrityViolationException ex) {
+            // Likely due to unique constraint violations
             return CustomerResponseDto.builder()
                     .responseCode("002")
-                    .responseMessage("BVN already exists")
+                    .responseMessage("Duplicate BVN or NIN")
                     .build();
-        }
 
-        // Check if NIN already exists
-        if (customerRepository.findByNin(requestDto.getNin()).isPresent()) {
+        } catch (Exception ex) {
+            // Log the exception if needed
+            ex.printStackTrace(); // Or use a logger
+
             return CustomerResponseDto.builder()
-                    .responseCode("002")
-                    .responseMessage("NIN already exists")
+                    .responseCode("999")
+                    .responseMessage("An unexpected error occurred")
                     .build();
         }
-
-        if (customerRepository.findByEmail(requestDto.getEmail()).isPresent()) {
-            return CustomerResponseDto.builder()
-                    .responseCode("002")
-                    .responseMessage("Email already exists")
-                    .build();
-        }
-
-
-
-        // Save new customer
-        Customer customer = Customer.builder()
-                .fullName(requestDto.getFullName())
-                .bvn(requestDto.getBvn())
-                .nin(requestDto.getNin())
-                .email(requestDto.getEmail())
-                .isVerified(true)
-                .build();
-
-        Customer saved = customerRepository.save(customer);
-
-        // Return successful response
-        return CustomerResponseDto.builder()
-                .id(saved.getId())
-                .fullName(saved.getFullName())
-                .bvn(saved.getBvn())
-                .nin(saved.getNin())
-                .email(saved.getEmail())
-                .responseCode("000")
-                .responseMessage("Success")
-                .build();
-
 }
 }
